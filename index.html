@@ -68,7 +68,6 @@
     text-transform:uppercase;margin-top:10px; font-weight: 600;
   }
   
-  /* ĐẨY NÚT CHUYỂN ĐỔI VÀ CHỮ LÊN CAO HƠN ĐỂ KHÔNG BỊ CHE */
   .veh-dots{
     position:absolute;bottom:70px;left:0;right:0;
     display:flex;justify-content:center;gap:8px;
@@ -102,7 +101,7 @@
   }
   .bottle-ph .big{font-size:14px;color:#999;font-weight:700}
 
-  /* Khi zoom out - Thu nhỏ xuống 0.6 để nhường chỗ cho chữ */
+  /* Khi zoom out - Thu nhỏ chai lại để nhường chỗ cho chữ */
   .bottle-wrap.zoomed{
     transform:scale(0.6);
     cursor:default;
@@ -241,14 +240,65 @@
     80%{transform:translateX(4px)}
   }
   .shake{animation:shakeX .3s ease}
+
+  /* ===== MODAL GIÁ SỈ ===== */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px); z-index: 999;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+  }
+  .modal-overlay.show { opacity: 1; pointer-events: auto; }
+  .modal-content {
+    background: #fff; width: 90%; max-width: 400px;
+    border-radius: 16px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    transform: translateY(20px); transition: transform 0.3s ease;
+    max-height: 80vh; overflow-y: auto;
+  }
+  .modal-overlay.show .modal-content { transform: translateY(0); }
+  .modal-content h3 { font-size: 20px; margin-bottom: 15px; color: var(--accent); text-align: center; text-transform: uppercase;}
+  .modal-content table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .modal-content th, .modal-content td { padding: 10px 4px; border-bottom: 1px solid var(--line); text-align: left; }
+  .modal-content th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase;}
+  .modal-content td { font-weight: 700; }
+  .modal-content td:last-child { text-align: right; color: var(--accent); }
+  .btn-close-modal {
+    width: 100%; margin-top: 20px; padding: 12px;
+    background: var(--fg); color: #fff; border: none;
+    border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer;
+  }
 </style>
 </head>
 <body>
 
+<!-- ===================== MODAL GIÁ SỈ (ẨN) ===================== -->
+<div class="modal-overlay" id="wholesaleModal" onclick="closeWholesale(event)">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <h3>Bảng Giá Sỉ Phụ Tùng</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Sản phẩm</th>
+          <th style="text-align: right;">0.8L / 1L</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>AX3 20W50</td><td>90 / 103</td></tr>
+        <tr><td>AX5 20W50</td><td>90 / 102</td></tr>
+        <tr><td>AX5 15W40</td><td>91 / 103</td></tr>
+        <tr><td>AX7 10W40</td><td>110 / 120</td></tr>
+        <tr><td>AX7 ga 10W40</td><td>112 / 131</td></tr>
+      </tbody>
+    </table>
+    <button class="btn-close-modal" onclick="closeWholesale()">Đóng bảng giá</button>
+  </div>
+</div>
+
 <!-- ===================== MÀN HÌNH 1: CHỌN XE ===================== -->
 <div class="screen" id="screenHome">
   <header>
-    <img src="logo-shell.png" alt="Shell Advance" style="height: 60px; object-fit: contain; margin-bottom: 5px;">
+    <!-- Nhấn GIỮ logo này 1 giây để mở bảng giá sỉ -->
+    <img id="secretLogo" src="logo-shell.png" alt="Shell Advance" style="height: 60px; object-fit: contain; margin-bottom: 5px; cursor: pointer;">
     <div class="sub">Chọn loại xe của bạn</div>
   </header>
 
@@ -574,6 +624,44 @@ function shakeEl(el){
 }
 
 // ============================================================
+// TÍNH NĂNG ẨN: BẢNG GIÁ SỈ (NHẤN GIỮ LOGO 1 GIÂY)
+// ============================================================
+let logoHoldTimer;
+
+// Bắt đầu nhấn giữ
+$('secretLogo').addEventListener('touchstart', (e) => {
+  e.preventDefault(); // Ngăn trình duyệt tự phóng to
+  logoHoldTimer = setTimeout(() => {
+    vibrate(50); // Rung báo hiệu
+    $('wholesaleModal').classList.add('show');
+  }, 800); // 800ms = 0.8 giây
+}, {passive: false});
+
+// Hủy nếu nhấc tay ra sớm
+$('secretLogo').addEventListener('touchend', () => {
+  clearTimeout(logoHoldTimer);
+});
+$('secretLogo').addEventListener('touchmove', () => {
+  clearTimeout(logoHoldTimer);
+});
+
+// Hỗ trợ chuột (khi xem trên máy tính)
+$('secretLogo').addEventListener('mousedown', (e) => {
+  e.preventDefault();
+  logoHoldTimer = setTimeout(() => {
+    $('wholesaleModal').classList.add('show');
+  }, 800);
+});
+$('secretLogo').addEventListener('mouseup', () => clearTimeout(logoHoldTimer));
+$('secretLogo').addEventListener('mouseleave', () => clearTimeout(logoHoldTimer));
+
+// Hàm đóng bảng giá sỉ
+function closeWholesale(e) {
+  if(e && e.target !== e.currentTarget) return; // Chỉ đóng khi click ra ngoài vùng trắng
+  $('wholesaleModal').classList.remove('show');
+}
+
+// ============================================================
 // MÀN HÌNH 1: CHỌN XE
 // ============================================================
 let vehIndex = 0;
@@ -788,7 +876,6 @@ function prevBottle(){ index = (index - 1 + filtered.length) % filtered.length; 
 function animateBottle(){
   closeAnnotations();
   const b = $('bottle');
-  // Xóa các thuộc tính transform và opacity do JS can thiệp để nhường cho CSS
   b.style.transition = 'none';
   b.style.opacity = '0';
   setTimeout(() => {
