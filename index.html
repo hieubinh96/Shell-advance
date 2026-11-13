@@ -101,7 +101,7 @@
   }
   .bottle-ph .big{font-size:14px;color:#999;font-weight:700}
 
-  /* Khi zoom out - Thu nhỏ chai lại để nhường chỗ cho chữ */
+  /* Khi zoom out */
   .bottle-wrap.zoomed{
     transform:scale(0.6);
     cursor:default;
@@ -152,7 +152,6 @@
   }
   .annotations.show{opacity:1}
   
-  /* Thu nhỏ khung chú thích để không đè chữ */
   .anno{
     position:absolute;background:#fff;border:1px solid var(--line);
     border-radius:8px;padding:4px 8px;font-size:10px;line-height:1.2;
@@ -165,7 +164,6 @@
   .anno .v{font-size:11px;font-weight:700;color:var(--fg);letter-spacing:-.2px}
   .anno .v.red{color:var(--accent)}
 
-  /* Căn chỉnh vị trí các hộp chú thích xa tâm hơn */
   .anno.tl{top:28%;left:4%}
   .anno.tr{top:28%;right:4%}
   .anno.ml{top:48%;left:2%}
@@ -271,7 +269,7 @@
 </head>
 <body>
 
-<!-- ===================== MODAL GIÁ SỈ (ẨN) ===================== -->
+<!-- ===================== MODAL GIÁ SỈ ===================== -->
 <div class="modal-overlay" id="wholesaleModal" onclick="closeWholesale(event)">
   <div class="modal-content" onclick="event.stopPropagation()">
     <h3>Bảng Giá Sỉ Phụ Tùng</h3>
@@ -297,7 +295,7 @@
 <!-- ===================== MÀN HÌNH 1: CHỌN XE ===================== -->
 <div class="screen" id="screenHome">
   <header>
-    <!-- Nhấn GIỮ logo này 1 giây để mở bảng giá sỉ -->
+    <!-- Chạm 1 lần vào logo để mở bảng giá sỉ -->
     <img id="secretLogo" src="logo-shell.png" alt="Shell Advance" style="height: 60px; object-fit: contain; margin-bottom: 5px; cursor: pointer;">
     <div class="sub">Chọn loại xe của bạn</div>
   </header>
@@ -582,26 +580,26 @@ const products = [
 ];
 
 // ============================================================
-// ĐƯỜNG DẪN ẢNH (Bạn thay tên file ảnh của bạn vào đây)
+// ĐƯỜNG DẪN ẢNH
 // ============================================================
 // --- ẢNH XE SỐ ---
-products[0].img = "1.png"; // AX3 20W50
-products[1].img = "2.png"; // AX5 20W50
-products[2].img = "3.png"; // AX5 15W40
-products[3].img = "4.png"; // Techbike
-products[4].img = "5.png"; // AX7
-products[5].img = "6.png"; // City 10W40
-products[6].img = "7.png"; // City 10W30
-products[7].img = "8.png"; // Ultra 10W40
-products[8].img = "9.png"; // Ultra 10W50
+products[0].img = "1.png";
+products[1].img = "2.png";
+products[2].img = "3.png";
+products[3].img = "4.png";
+products[4].img = "5.png";
+products[5].img = "6.png";
+products[6].img = "7.png";
+products[7].img = "8.png";
+products[8].img = "9.png";
 
 // --- ẢNH XE GA ---
-products[9].img = "10.png";  // AX5 ga 15W40
-products[10].img = "11.png"; // Techbike ga 10W40
-products[11].img = "12.png"; // AX7 ga 10W40
-products[12].img = "13.png"; // City ga 10W40
-products[13].img = "14.png"; // City ga 10W30
-products[14].img = "15.png"; // Ultra ga 5W40
+products[9].img = "10.png";
+products[10].img = "11.png";
+products[11].img = "12.png";
+products[12].img = "13.png";
+products[13].img = "14.png";
+products[14].img = "15.png";
 
 // ============================================================
 // BIẾN & HÀM HỖ TRỢ
@@ -624,40 +622,16 @@ function shakeEl(el){
 }
 
 // ============================================================
-// TÍNH NĂNG ẨN: BẢNG GIÁ SỈ (NHẤN GIỮ LOGO 1 GIÂY)
+// BẢNG GIÁ SỈ (CHẠM 1 LẦN VÀO LOGO)
 // ============================================================
-let logoHoldTimer;
-
-// Bắt đầu nhấn giữ
-$('secretLogo').addEventListener('touchstart', (e) => {
-  e.preventDefault(); // Ngăn trình duyệt tự phóng to
-  logoHoldTimer = setTimeout(() => {
-    vibrate(50); // Rung báo hiệu
-    $('wholesaleModal').classList.add('show');
-  }, 800); // 800ms = 0.8 giây
-}, {passive: false});
-
-// Hủy nếu nhấc tay ra sớm
-$('secretLogo').addEventListener('touchend', () => {
-  clearTimeout(logoHoldTimer);
+$('secretLogo').addEventListener('click', () => {
+  vibrate(30); // Rung nhẹ báo hiệu
+  $('wholesaleModal').classList.add('show');
 });
-$('secretLogo').addEventListener('touchmove', () => {
-  clearTimeout(logoHoldTimer);
-});
-
-// Hỗ trợ chuột (khi xem trên máy tính)
-$('secretLogo').addEventListener('mousedown', (e) => {
-  e.preventDefault();
-  logoHoldTimer = setTimeout(() => {
-    $('wholesaleModal').classList.add('show');
-  }, 800);
-});
-$('secretLogo').addEventListener('mouseup', () => clearTimeout(logoHoldTimer));
-$('secretLogo').addEventListener('mouseleave', () => clearTimeout(logoHoldTimer));
 
 // Hàm đóng bảng giá sỉ
 function closeWholesale(e) {
-  if(e && e.target !== e.currentTarget) return; // Chỉ đóng khi click ra ngoài vùng trắng
+  if(e && e.target !== e.currentTarget) return; // Chỉ đóng khi click ra ngoài
   $('wholesaleModal').classList.remove('show');
 }
 
@@ -743,7 +717,6 @@ function renderBottle(){
   const p = filtered[index];
   if(!p) return;
 
-  // Ảnh
   if(p.img && p.img.length > 2){
     $('bottleContent').innerHTML = `<img src="${p.img}" alt="${p.name}">`;
   } else {
@@ -753,11 +726,9 @@ function renderBottle(){
        </div>`;
   }
 
-  // Tên & Loại
   $('bottleName').textContent = p.name;
   $('bottleCat').textContent = p.catLabel;
 
-  // Giá (xử lý ẩn/hiện cột nếu không có dung tích)
   if(p.price08){
     $('colPrice08').style.display = 'block';
     $('price08').textContent = p.price08;
@@ -772,7 +743,6 @@ function renderBottle(){
     $('colPrice1L').style.display = 'none';
   }
 
-  // Khuyến mãi
   if(p.promo && p.promoText){
     $('promoBadge').style.display = 'inline-block';
     $('promoBadge').textContent = p.promoText;
@@ -780,7 +750,6 @@ function renderBottle(){
     $('promoBadge').style.display = 'none';
   }
 
-  // Dots
   [...$('bottleDots').children].forEach((d, i) => d.classList.toggle('active', i === index));
 
   if(annoOpen) fillAnnotations(p);
@@ -799,7 +768,6 @@ function openAnnotations(){
   const p = filtered[index];
   fillAnnotations(p);
 
-  // Giá net (xử lý ẩn/hiện)
   if(p.netPrice08){
     $('colNet08').style.display = 'block';
     $('net08').textContent = p.netPrice08;
@@ -833,7 +801,6 @@ function closeAnnotations(){
   $('netPrice').classList.remove('show');
 }
 
-// Bấm vào chai: Chỉ mở chú thích, không tự đóng nếu đã mở
 $('bottle').addEventListener('click', () => {
   if(!annoOpen) {
     vibrate(18);
