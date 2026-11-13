@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Shell Advance</title>
+<style>
+  :root{
+    --bg:#ffffff;
+    --fg:#111111;
+    --muted:#888888;
+    --accent:#e2231a;
+    --yellow:#ffd500;
+    --line:#e8e8e8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    background:var(--bg);color:var(--fg);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    overflow:hidden;user-select:none;-webkit-font-smoothing:antialiased;
+  }
+
+  /* ===== MÀN HÌNH CHUNG ===== */
+  .screen{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;
+    transition:opacity .35s ease, transform .35s ease;
+  }
+  .screen.hidden{opacity:0;pointer-events:none;transform:scale(.98)}
+
+  /* ===== HEADER ===== */
+  header{
+    text-align:center;padding:26px 16px 10px;flex-shrink:0;position:relative;z-index:20;
+  }
+  header .sub{font-size:15px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:8px; font-weight: 600;}
+  .back-btn{
+    position:absolute;left:16px;top:26px;
+    background:none;border:none;font-size:22px;color:var(--fg);
+    cursor:pointer;padding:4px;line-height:1;
+  }
+
+  /* ===== TRANG MỞ ĐẦU: 2 XE VUỐT ===== */
+  #screenHome .carousel{
+    flex:1;position:relative;overflow:hidden;
+  }
+  .veh-track{
+    display:flex;height:100%;
+    transition:transform .4s cubic-bezier(.22,1,.36,1);
+    will-change:transform;
+  }
+  .veh-slide{
+    min-width:100%;height:100%;
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    padding:20px;cursor:pointer;
+  }
+  .veh-slide .veh-img{
+    width:90vw;max-width:500px;aspect-ratio:1/1;
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;
+    transition:transform .2s;
+  }
+  .veh-slide:active .veh-img{transform:scale(.96)}
+  .veh-slide .veh-img img{width:100%;height:100%;object-fit:contain}
+  .veh-slide .veh-sub{
+    font-size:14px;color:var(--muted);letter-spacing:2px;
+    text-transform:uppercase;margin-top:10px; font-weight: 600;
+  }
+  
+  /* ĐẨY NÚT CHUYỂN ĐỔI VÀ CHỮ LÊN CAO HƠN ĐỂ KHÔNG BỊ CHE */
+  .veh-dots{
+    position:absolute;bottom:70px;left:0;right:0;
+    display:flex;justify-content:center;gap:8px;
+  }
+  .veh-dots .dot{width:7px;height:7px;border-radius:50%;background:#ddd;transition:.25s}
+  .veh-dots .dot.active{background:var(--fg);width:20px;border-radius:4px}
+  .swipe-hint{
+    position:absolute;bottom:95px;left:0;right:0;text-align:center;
+    font-size:10px;color:#ccc;letter-spacing:1.5px;
+    animation:fadeHint 3s ease 2.5s forwards;
+  }
+  @keyframes fadeHint{to{opacity:0}}
+
+  /* ===== MÀN HÌNH CHAI NHỚT ===== */
+  .stage{
+    flex:1;position:relative;display:flex;
+    align-items:center;justify-content:center;overflow:hidden;
+  }
+  .bottle-wrap{
+    position:relative;width:55vw;max-width:240px;aspect-ratio:3/4;
+    cursor:pointer;
+    transition:transform .4s cubic-bezier(.22,1,.36,1);
+    z-index:2;
+  }
+  .bottle-wrap img{width:100%;height:100%;object-fit:contain;pointer-events:none}
+  .bottle-ph{
+    width:100%;height:100%;
+    border:2px dashed var(--line);border-radius:22px;
+    display:flex;align-items:center;justify-content:center;
+    flex-direction:column;gap:6px;color:#bbb;font-size:12px;text-align:center;padding:16px;
+  }
+  .bottle-ph .big{font-size:14px;color:#999;font-weight:700}
+
+  /* Khi zoom out - Thu nhỏ xuống 0.6 để nhường chỗ cho chữ */
+  .bottle-wrap.zoomed{
+    transform:scale(0.6);
+    cursor:default;
+  }
+
+  /* Tên dưới chai */
+  .bottle-name{
+    position:absolute;bottom:70px;left:0;right:0;text-align:center;
+    pointer-events:none;transition:opacity .3s;padding:0 20px;
+  }
+  .bottle-wrap.zoomed ~ .bottle-name{opacity:0}
+  .bottle-name .cat{
+    display:block;font-size:10px;color:var(--muted);font-weight:500;
+    letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px;
+  }
+  .bottle-name .nm{font-size:15px;font-weight:700;letter-spacing:-.2px}
+
+  /* ===== GIÁ CHÍNH GIỮA (CHIA 2 BÊN) ===== */
+  .price-block{
+    position:absolute;top:10px;left:0;right:0;
+    display:flex;justify-content:center;gap:50px;
+    pointer-events:none;transition:opacity .3s;z-index:3;
+  }
+  .bottle-wrap.zoomed ~ .price-block{opacity:0}
+  
+  .price-col{text-align:center; min-width: 80px;}
+  .price-col .label{
+    font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase; font-weight:600;
+  }
+  .price-col .amount{
+    font-size:22px;font-weight:800;color:var(--accent);
+    letter-spacing:-.5px;margin-top:2px;
+  }
+  .price-block .promo-wrap{
+    position:absolute;top:100%;left:0;right:0;text-align:center;margin-top:12px;
+  }
+  .price-block .promo{
+    display:inline-block;background:var(--yellow);color:#000;
+    font-size:12px;font-weight:800;
+    padding:6px 14px;border-radius:999px;
+    letter-spacing:.3px;
+  }
+
+  /* ===== CHÚ THÍCH QUANH CHAI ===== */
+  .annotations{
+    position:absolute;inset:0;pointer-events:none;
+    opacity:0;transition:opacity .35s ease .15s;z-index:1;
+  }
+  .annotations.show{opacity:1}
+  
+  /* Thu nhỏ khung chú thích để không đè chữ */
+  .anno{
+    position:absolute;background:#fff;border:1px solid var(--line);
+    border-radius:8px;padding:4px 8px;font-size:10px;line-height:1.2;
+    box-shadow:0 2px 8px rgba(0,0,0,.06);max-width:95px;pointer-events:none;
+  }
+  .anno .k{
+    font-size:8px;color:var(--muted);letter-spacing:.5px;
+    text-transform:uppercase;display:block;margin-bottom:2px;white-space:nowrap;
+  }
+  .anno .v{font-size:11px;font-weight:700;color:var(--fg);letter-spacing:-.2px}
+  .anno .v.red{color:var(--accent)}
+
+  /* Căn chỉnh vị trí các hộp chú thích xa tâm hơn */
+  .anno.tl{top:28%;left:4%}
+  .anno.tr{top:28%;right:4%}
+  .anno.ml{top:48%;left:2%}
+  .anno.mr{top:48%;right:2%}
+  .anno.bl{bottom:28%;left:4%}
+  .anno.br{bottom:28%;right:4%}
+
+  /* Nút đóng chú thích */
+  .close-anno{
+    position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
+    background:var(--fg);color:#fff;border:none;
+    padding:11px 26px;border-radius:999px;
+    font-size:13px;font-weight:700;letter-spacing:.3px;
+    cursor:pointer;opacity:0;pointer-events:none;transition:opacity .3s;
+    z-index:5;
+  }
+  .close-anno.show{opacity:1;pointer-events:auto}
+
+  /* ===== DÒNG GIÁ TRỪ NET (CHIA 2 BÊN) ===== */
+  .net-price{
+    position:absolute;left:0;right:0;bottom:60px;
+    display:flex;justify-content:center;gap:50px;
+    opacity:0;pointer-events:none;transition:opacity .35s ease .2s;z-index:4;
+  }
+  .net-price.show{opacity:1}
+  .net-price .net-col{text-align:center; min-width: 80px;}
+  .net-price .k{
+    font-size:9px;color:var(--muted);letter-spacing:1.5px;
+    text-transform:uppercase;display:block;margin-bottom:3px; font-weight: 600;
+  }
+  .net-price .v{
+    font-size:20px;font-weight:800;color:var(--accent);letter-spacing:-.4px;
+  }
+
+  /* ===== PANEL MÔ TẢ ===== */
+  .info-panel{
+    position:absolute;left:0;right:0;bottom:0;
+    background:#fff;border-top:1px solid var(--line);
+    border-radius:20px 20px 0 0;
+    padding:18px 22px calc(20px + env(safe-area-inset-bottom));
+    transform:translateY(110%);
+    transition:transform .35s cubic-bezier(.22,1,.36,1);
+    box-shadow:0 -10px 40px rgba(0,0,0,.08);
+    max-height:50vh;overflow-y:auto;z-index:10;
+  }
+  .info-panel.open{transform:translateY(0)}
+  .info-panel .handle{width:40px;height:4px;border-radius:2px;background:#ddd;margin:0 auto 14px}
+  .info-panel h2{font-size:18px;font-weight:800;letter-spacing:-.3px;margin-bottom:3px}
+  .info-panel .m-cat{font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px}
+  .info-panel p{font-size:13px;line-height:1.6;color:#444;margin-bottom:12px}
+  .info-panel .feat-row{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+  .info-panel .feat-row span{background:#f5f5f5;font-size:11px;padding:5px 11px;border-radius:999px;color:#333;font-weight:500}
+  .info-panel .btn{
+    display:block;text-align:center;background:var(--fg);color:#fff;
+    padding:14px;border-radius:14px;font-weight:800;text-decoration:none;font-size:14px;
+  }
+
+  /* Dots chai */
+  .bottle-dots{
+    position:absolute;bottom:14px;left:0;right:0;
+    display:flex;justify-content:center;gap:6px;z-index:4;
+  }
+  .bottle-dots .dot{width:5px;height:5px;border-radius:50%;background:#ddd;transition:.2s}
+  .bottle-dots .dot.active{background:var(--fg);width:16px;border-radius:3px}
+
+  /* ===== HIỆU ỨNG RUNG ===== */
+  @keyframes shakeX{
+    0%,100%{transform:translateX(0)}
+    20%{transform:translateX(-6px)}
+    40%{transform:translateX(6px)}
+    60%{transform:translateX(-4px)}
+    80%{transform:translateX(4px)}
+  }
+  .shake{animation:shakeX .3s ease}
+</style>
+</head>
+<body>
+
+<!-- ===================== MÀN HÌNH 1: CHỌN XE ===================== -->
+<div class="screen" id="screenHome">
+  <header>
+    <img src="logo-shell.png" alt="Shell Advance" style="height: 60px; object-fit: contain; margin-bottom: 5px;">
+    <div class="sub">Chọn loại xe của bạn</div>
+  </header>
+
+  <div class="carousel">
+    <div class="veh-track" id="vehTrack">
+      
+      <!-- ẢNH XE SỐ -->
+      <div class="veh-slide" data-cat="xe-so">
+        <div class="veh-img">
+          <img src="xe-so.png" alt="Xe số">
+        </div>
+        <div class="veh-sub">Xe máy số phổ thông</div>
+      </div>
+
+      <!-- ẢNH XE GA -->
+      <div class="veh-slide" data-cat="xe-ga">
+        <div class="veh-img">
+          <img src="xe-ga.png" alt="Xe ga">
+        </div>
+        <div class="veh-sub">Xe tay ga</div>
+      </div>
+
+    </div>
+    <div class="veh-dots" id="vehDots">
+      <div class="dot active"></div>
+      <div class="dot"></div>
+    </div>
+    <div class="swipe-hint">← VUỐT ĐỂ CHỌN XE →</div>
+  </div>
+</div>
+
+<!-- ===================== MÀN HÌNH 2: CHAI NHỚT ===================== -->
+<div class="screen hidden" id="screenProduct">
+  <header>
+    <button class="back-btn" onclick="goHome()">←</button>
+    <h1>Shell <span>Advance</span></h1>
+    <div class="sub" id="catSub">—</div>
+  </header>
+
+  <div class="stage" id="stage">
+    
+    <!-- Giá chính giữa (chia 2 bên) -->
+    <div class="price-block" id="priceBlock">
+      <div class="price-col" id="colPrice08">
+        <div class="label">Loại 0.8L</div>
+        <div class="amount" id="price08">---.000đ</div>
+      </div>
+      <div class="price-col" id="colPrice1L">
+        <div class="label">Loại 1L</div>
+        <div class="amount" id="price1L">---.000đ</div>
+      </div>
+      <div class="promo-wrap">
+        <div class="promo" id="promoBadge">Mua 24 chai tặng 4</div>
+      </div>
+    </div>
+
+    <!-- Chú thích quanh chai -->
+    <div class="annotations" id="annotations">
+      <div class="anno tl"><span class="k">Cấp nhớt</span><span class="v" id="anCap">—</span></div>
+      <div class="anno tr"><span class="k">Số km tối thiểu</span><span class="v red" id="anKm">—</span></div>
+      <div class="anno ml"><span class="k">Tiêu chuẩn API</span><span class="v" id="anAPI">—</span></div>
+      <div class="anno mr"><span class="k">Công nghệ</span><span class="v" id="anTech">—</span></div>
+      <div class="anno bl"><span class="k">Loại nhớt</span><span class="v" id="anType">—</span></div>
+      <div class="anno br"><span class="k">Dung tích</span><span class="v" id="anVol">—</span></div>
+    </div>
+
+    <!-- Chai nhớt -->
+    <div class="bottle-wrap" id="bottle">
+      <div id="bottleContent"></div>
+    </div>
+
+    <!-- Tên dưới chai -->
+    <div class="bottle-name">
+      <span class="cat" id="bottleCat">—</span>
+      <span class="nm" id="bottleName">—</span>
+    </div>
+
+    <!-- Dots -->
+    <div class="bottle-dots" id="bottleDots"></div>
+
+    <!-- Nút đóng chú thích -->
+    <button class="close-anno" id="closeAnno" onclick="closeAnnotations()">Đóng chú thích</button>
+
+    <!-- Giá trừ net (chia 2 bên) -->
+    <div class="net-price" id="netPrice">
+      <div class="net-col" id="colNet08">
+        <span class="k">Giá net 0.8L</span>
+        <span class="v" id="net08">---.000đ</span>
+      </div>
+      <div class="net-col" id="colNet1L">
+        <span class="k">Giá net 1L</span>
+        <span class="v" id="net1L">---.000đ</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel mô tả + Zalo -->
+  <div class="info-panel" id="infoPanel">
+    <div class="handle"></div>
+    <h2 id="mName"></h2>
+    <div class="m-cat" id="mCat"></div>
+    <p id="mDesc"></p>
+    <div class="feat-row" id="mFeats"></div>
+    <a class="btn" id="mBtn" href="https://zalo.me/0900000000" target="_blank">📞 Liên hệ đặt hàng (Zalo)</a>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DỮ LIỆU SẢN PHẨM
+// ============================================================
+const products = [
+  // ================== XE SỐ ==================
+  {
+    name:"Shell Advance AX3 20W-50", cat:"xe-so", catLabel:"Xe số",
+    price08:"102.000đ", price1L:"117.000đ",
+    netPrice08:"94.000đ", netPrice1L:"108.000đ",
+    promoText: "Mua 24 chai tặng 2 chai",
+    desc:"Dầu nhờn khoáng cho xe số 4T. Bảo vệ động cơ cơ bản, phù hợp cho xe chạy hàng ngày.",
+    feats:["Khoáng","API SJ","Active Cleansing"],
+    cap:"20W-50", km:"1.500 km", type:"Khoáng", api:"API SJ",
+    tech:"Active Cleansing", vol:"0.8L / 1L", fit:"Xe số phổ thông",
+    promo:true, img:""
+  },
+  {
+    name:"Shell Advance AX5 20W-50", cat:"xe-so", catLabel:"Xe số",
+    price08:"110.000đ", price1L:"124.000đ",
+    netPrice08:"94.000đ", netPrice1L:"106.000đ",
+    promoText: "Mua 24 chai tặng 4 chai",
+    desc:"Dầu nhờn khoáng cao cấp cho xe số. Giúp động cơ sạch sẽ, vận hành êm ái.",
+    feats:["Khoáng","API SJ","Active Cleansing"],
+    cap:"20W-50", km:"2.000 km", type:"Khoáng", api:"API SJ",
+    tech:"Active Cleansing", vol:"0.8L / 1L", fit:"Xe số phổ thông",
+    promo:true, img:""
+  },
+  {
+    name:"Shell Advance AX5 15W-40", cat:"xe-so", catLabel:"Xe số",
+    price08:"112.000đ", price1L:"127.000đ",
+    netPrice08:"96.000đ", netPrice1L:"109.000đ",
+    promoText: "Mua 24 chai tặng 4 chai",
+    desc:"Dầu nhờn khoáng cho xe số. Độ nhớt 15W-40 phù hợp điều kiện khí hậu Việt Nam.",
+    feats:["Khoáng","API SL","Active Cleansing"],
+    cap:"15W-40", km:"2.000 km", type:"Khoáng", api:"API SL",
+    tech:"Active Cleansing", vol:"0.8L / 1L", fit:"Xe số phổ thông",
+    promo:true, img:""
+  },
+  {
+    name:"Shell Advance Techbike 10W-40", cat:"xe-so", catLabel:"Xe số",
+    price08:"114.000đ", price1L:"132.000đ",
+    netPrice08:"98.000đ", netPrice1L:"113.000đ",
+    promoText: "Mua 24 chai tặng 4 chai",
+    desc:"Dầu nhờn bán tổng hợp cho xe số. Tối ưu cho xe công nghệ, xe giao hàng chạy đường dài.",
+    feats:["Bán tổng hợp","API SL","Active Cleansing"],
+    cap:"10W-40", km:"2.500 km", type:"Bán tổng hợp", api:"API SL",
+    tech:"Active Cleansing", vol:"0.8L / 1L", fit:"Xe công nghệ",
+    promo:true, img:""
+  },
+  {
+    name:"Shell Advance AX7 10W-40", cat:"xe-so", catLabel:"Xe số",
+    price08:"132.000đ", price1L:"147.000đ",
+    netPrice08:"113.000đ", netPrice1L:"126.000đ",
+    promoText: "Mua 24 chai tặng 4 chai",
+    desc:"Dầu nhờn bán tổng hợp cao cấp cho xe số. Giúp động cơ sạch, giảm ma sát, kéo dài tuổi thọ máy.",
+    feats:["Bán tổng hợp","API SN","Flexi Molecule"],
+    cap:"10W-40", km:"3.000 km", type:"Bán tổng hợp", api:"API SN",
+    tech:"Flexi Molecule", vol:"0.8L / 1L", fit:"Xe số cao cấp",
+    promo:true, img:""
+  },
+  {
+    name:"Shell Advance City 10W-40", cat:"xe-so", catLabel:"Xe số",
+    price08:"154.000đ", price1L:"166.000đ",
+    netPrice08:"127.000đ", netPrice1L:"137.000đ",
+    promoText: "Mua 24 chai tặng 5 chai",
+    desc:"Dầu nhờn tổng hợp toàn phần cho xe số, chuyên biệt cho điều kiện giao thông đô thị.",
+    feats:["Tổng hợp toàn phần","API SP","Shell PurePlus"],
+    cap:"10W-40", km:"3.500 km", type:"Tổng hợp toàn phần", api:"API SP",
+    tech:"Shell PurePlus", vol:"0.8L / 1L", fit:"Xe số chạy phố",
+    promo:true, img:""
+  },
+  {
+    name:"Shell Advance City 10W-30", cat:"xe-so", catLabel:"Xe số",
+    price08:"168.000đ", price1L:"188.000đ",
+    netPrice08:"139.000đ", netPrice1L:"156.000đ",
+    promoText: "Mua 24 chai tặng 5 chai",
+    desc:"Dầu nhờn tổng hợp toàn phần cho xe số. Độ nhớt 10W-30 giúp tiết kiệm nhiên liệu tối đa.",
+    feats:["Tổng hợp toàn phần","API SP","Shell PurePlus"],
+    cap:"10W-30", km:"3.500 km", type:"Tổng hợp toàn phần", api:"API SP",
+    tech:"Shell PurePlus", vol:"0.8L / 1L", fit:"Xe số chạy phố",
+    promo:true, img:""
+  },
+  {
+    name:"Shell Advance Ultra 10W-40", cat:"xe-so", catLabel:"Xe số",
+    price08:null, price1L:"234.000đ",
+    netPrice08:null, netPrice1L:"194.000đ",
+    promoText: "Mua 24 chai tặng 5 chai",
+    desc:"Dầu nhờn tổng hợp toàn phần cao cấp nhất cho xe số. Bảo vệ động cơ tối ưu.",
+    feats:["Tổng hợp toàn phần","API SN","Shell PurePlus"],
+    cap:"10W-40", km:"4.000 km", type:"Tổng hợp toàn phần", api:"API SN",
+    tech:"Shell PurePlus", vol:"Chỉ có 1L", fit:"Xe số hiệu suất cao",
+    promo:true, img:""
+  },
+  {
+    name:"Shell Advance Ultra 10W-50", cat:"xe-so", catLabel:"Xe số",
+    price08:null, price1L:"315.000đ",
+    netPrice08:null, netPrice1L:"261.000đ",
+    promoText: "Mua 24 chai tặng 5 chai",
+    desc:"Dầu nhờn tổng hợp toàn phần cho xe số. Độ nhớt 10W-50 chịu nhiệt cực tốt cho xe chạy đường dài, tải nặng.",
+    feats:["Tổng hợp toàn phần","API SN","Shell PurePlus"],
+    cap:"10W-50", km:"4.000 km", type:"Tổng hợp toàn phần", api:"API SN",
+    tech:"Shell PurePlus", vol:"Chỉ có 1L", fit:"Xe số đường dài",
+    promo:true, img:""
+  },
+  
+  // ================== XE GA ==================
+  {
+    name:"Shell Advance AX5 15W-40", cat:"xe-ga", catLabel:"Xe ga",
+    price08:"120.000đ", price1L:null,
+    netPrice08:"103.000đ", netPrice1L:null,
+    promoText: "Mua 24 chai tặng 4 chai",
+    desc:"Dầu nhờn khoáng cho xe ga. Giúp động cơ vận hành êm ái, sạch sẽ trong điều kiện giao thông đô thị.",
+    feats:["Khoáng","API SL","Active Cleansing"],
+    cap:"15W-40", km:"2.000 km", type:"Khoáng", api:"API SL",
+    tech:"Active Cleansing", vol:"Chỉ có 0.8L", fit:"Xe ga phổ thông",
+    promo:true, img:""
+  },
+  {
+    name:"Shell Advance Techbike 10W-40", cat:"xe-ga", catLabel:"Xe ga",
+    price08:"123.000đ", price1L:null,
+    netPrice08:"105.000đ", netPrice1L:null,
+    promoText: "Mua 24 chai tặng 4 chai",
+    desc:"Dầu nhờn bán tổng hợp cho xe ga. Tối ưu cho xe công nghệ, xe giao hàng chạy đường dài, bền bỉ.",
+    feats:["Bán tổng hợp","API SL","Active Cleansing"],
+    cap:"10W-40", km:"2.500 km", type:"Bán tổng hợp", api:"API SL",
+    tech:"Active Cleansing", vol:"Chỉ có 0.8L", fit:"Xe ga công nghệ",
+    promo:true, img:""
+  },
+  {
+    name:"Shell Advance AX7 10W-40", cat:"xe-ga", catLabel:"Xe ga",
+    price08:"139.000đ", price1L:"157.000đ",
+    netPrice08:"119.000đ", netPrice1L:"135.000đ",
+    promoText: "Mua 24 chai tặng 4 chai",
+    desc:"Dầu nhờn bán tổng hợp cao cấp cho xe ga. Công nghệ Flexi Molecule giúp bảo vệ động cơ tối ưu.",
+    feats:["Bán tổng hợp","API SN","Flexi Molecule"],
+    cap:"10W-40", km:"3.000 km", type:"Bán tổng hợp", api:"API SN",
+    tech:"Flexi Molecule", vol:"0.8L / 1L", fit:"Xe ga cao cấp",
+    promo:true, img:""
+  },
+  {
+    name:"Shell Advance City 10W-40", cat:"xe-ga", catLabel:"Xe ga",
+    price08:"162.000đ", price1L:null,
+    netPrice08:"134.000đ", netPrice1L:null,
+    promoText: "Mua 24 chai tặng 5 chai",
+    desc:"Dầu nhờn tổng hợp toàn phần cho xe ga, chuyên biệt cho điều kiện giao thông đô thị đông đúc.",
+    feats:["Tổng hợp toàn phần","API SP","Shell PurePlus"],
+    cap:"10W-40", km:"3.500 km", type:"Tổng hợp toàn phần", api:"API SP",
+    tech:"Shell PurePlus", vol:"Chỉ có 0.8L", fit:"Xe ga chạy phố",
+    promo:true, img:""
+  },
+  {
+    name:"Shell Advance City 10W-30", cat:"xe-ga", catLabel:"Xe ga",
+    price08:"170.000đ", price1L:null,
+    netPrice08:"141.000đ", netPrice1L:null,
+    promoText: "Mua 24 chai tặng 5 chai",
+    desc:"Dầu nhờn tổng hợp toàn phần cho xe ga. Độ nhớt 10W-30 giúp tiết kiệm nhiên liệu và khởi động nhẹ.",
+    feats:["Tổng hợp toàn phần","API SP","Shell PurePlus"],
+    cap:"10W-30", km:"3.500 km", type:"Tổng hợp toàn phần", api:"API SP",
+    tech:"Shell PurePlus", vol:"Chỉ có 0.8L", fit:"Xe ga tiết kiệm xăng",
+    promo:true, img:""
+  },
+  {
+    name:"Shell Advance Ultra 5W-40", cat:"xe-ga", catLabel:"Xe ga",
+    price08:"186.000đ", price1L:null,
+    netPrice08:"159.000đ", netPrice1L:null,
+    promoText: "Mua 24 chai tặng 4 chai",
+    desc:"Dầu nhờn tổng hợp toàn phần cao cấp nhất cho xe ga. Bảo vệ động cơ hoàn hảo, vận hành cực êm.",
+    feats:["Tổng hợp toàn phần","API SN","Shell PurePlus"],
+    cap:"5W-40", km:"4.000 km", type:"Tổng hợp toàn phần", api:"API SN",
+    tech:"Shell PurePlus", vol:"Chỉ có 0.8L", fit:"Xe ga hiệu suất cao",
+    promo:true, img:""
+  }
+];
+
+// ============================================================
+// ĐƯỜNG DẪN ẢNH (Bạn thay tên file ảnh của bạn vào đây)
+// ============================================================
+// --- ẢNH XE SỐ ---
+products[0].img = "1.png"; // AX3 20W50
+products[1].img = "2.png"; // AX5 20W50
+products[2].img = "3.png"; // AX5 15W40
+products[3].img = "4.png"; // Techbike
+products[4].img = "5.png"; // AX7
+products[5].img = "6.png"; // City 10W40
+products[6].img = "7.png"; // City 10W30
+products[7].img = "8.png"; // Ultra 10W40
+products[8].img = "9.png"; // Ultra 10W50
+
+// --- ẢNH XE GA ---
+products[9].img = "10.png";  // AX5 ga 15W40
+products[10].img = "11.png"; // Techbike ga 10W40
+products[11].img = "12.png"; // AX7 ga 10W40
+products[12].img = "13.png"; // City ga 10W40
+products[13].img = "14.png"; // City ga 10W30
+products[14].img = "15.png"; // Ultra ga 5W40
+
+// ============================================================
+// BIẾN & HÀM HỖ TRỢ
+// ============================================================
+let currentCat = 'xe-so';
+let filtered = [];
+let index = 0;
+let annoOpen = false;
+
+const $ = id => document.getElementById(id);
+
+// Rung
+function vibrate(ms){ if(navigator.vibrate) navigator.vibrate(ms); }
+function shakeEl(el){
+  if(!el) return;
+  el.classList.remove('shake');
+  void el.offsetWidth;
+  el.classList.add('shake');
+  setTimeout(() => el.classList.remove('shake'), 320);
+}
+
+// ============================================================
+// MÀN HÌNH 1: CHỌN XE
+// ============================================================
+let vehIndex = 0;
+const vehTrack = $('vehTrack');
+const vehDots = $('vehDots').children;
+const vehSlides = vehTrack.children;
+
+function vehGo(i){
+  vehIndex = Math.max(0, Math.min(vehSlides.length - 1, i));
+  vehTrack.style.transform = `translateX(-${vehIndex * 100}%)`;
+  [...vehDots].forEach((d, k) => d.classList.toggle('active', k === vehIndex));
+}
+
+let vStartX = 0, vMoved = false;
+vehTrack.addEventListener('touchstart', e => { vStartX = e.touches[0].clientX; vMoved = false; }, {passive:true});
+vehTrack.addEventListener('touchmove', e => { if(Math.abs(e.touches[0].clientX - vStartX) > 10) vMoved = true; }, {passive:true});
+vehTrack.addEventListener('touchend', e => {
+  if(!vMoved) return;
+  const dx = e.changedTouches[0].clientX - vStartX;
+  if(dx < -50){ vibrate(12); vehGo(vehIndex + 1); }
+  else if(dx > 50){ vibrate(12); vehGo(vehIndex - 1); }
+});
+
+let vMouse = false, vMouseX = 0;
+vehTrack.addEventListener('mousedown', e => { vMouse = true; vMouseX = e.clientX; });
+vehTrack.addEventListener('mouseup', e => {
+  if(!vMouse) return; vMouse = false;
+  const dx = e.clientX - vMouseX;
+  if(dx < -60){ vibrate(12); vehGo(vehIndex + 1); }
+  else if(dx > 60){ vibrate(12); vehGo(vehIndex - 1); }
+});
+
+[...vehSlides].forEach(s => {
+  s.addEventListener('click', () => {
+    if(vMoved) return;
+    vibrate(18);
+    shakeEl(s.querySelector('.veh-img'));
+    setTimeout(() => enterCategory(s.dataset.cat), 120);
+  });
+});
+
+// ============================================================
+// CHUYỂN MÀN HÌNH
+// ============================================================
+function enterCategory(cat){
+  currentCat = cat;
+  filtered = products.filter(p => p.cat === cat);
+  index = 0;
+  annoOpen = false;
+  $('catSub').textContent = cat === 'xe-so' ? 'Nhớt cho xe số' : 'Nhớt cho xe ga';
+  buildBottleDots();
+  renderBottle();
+  $('screenHome').classList.add('hidden');
+  $('screenProduct').classList.remove('hidden');
+  closeAnnotations();
+  closePanel();
+}
+function goHome(){
+  $('screenProduct').classList.add('hidden');
+  $('screenHome').classList.remove('hidden');
+  closeAnnotations();
+  closePanel();
+}
+
+// ============================================================
+// MÀN HÌNH 2: CHAI NHỚT
+// ============================================================
+function buildBottleDots(){
+  const el = $('bottleDots');
+  el.innerHTML = '';
+  filtered.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    el.appendChild(d);
+  });
+}
+
+function renderBottle(){
+  const p = filtered[index];
+  if(!p) return;
+
+  // Ảnh
+  if(p.img && p.img.length > 2){
+    $('bottleContent').innerHTML = `<img src="${p.img}" alt="${p.name}">`;
+  } else {
+    $('bottleContent').innerHTML = `<div class="bottle-ph">
+         <div class="big">${p.name}</div>
+         <div>Chưa có ảnh</div>
+       </div>`;
+  }
+
+  // Tên & Loại
+  $('bottleName').textContent = p.name;
+  $('bottleCat').textContent = p.catLabel;
+
+  // Giá (xử lý ẩn/hiện cột nếu không có dung tích)
+  if(p.price08){
+    $('colPrice08').style.display = 'block';
+    $('price08').textContent = p.price08;
+  } else {
+    $('colPrice08').style.display = 'none';
+  }
+
+  if(p.price1L){
+    $('colPrice1L').style.display = 'block';
+    $('price1L').textContent = p.price1L;
+  } else {
+    $('colPrice1L').style.display = 'none';
+  }
+
+  // Khuyến mãi
+  if(p.promo && p.promoText){
+    $('promoBadge').style.display = 'inline-block';
+    $('promoBadge').textContent = p.promoText;
+  } else {
+    $('promoBadge').style.display = 'none';
+  }
+
+  // Dots
+  [...$('bottleDots').children].forEach((d, i) => d.classList.toggle('active', i === index));
+
+  if(annoOpen) fillAnnotations(p);
+}
+
+function fillAnnotations(p){
+  $('anCap').textContent = p.cap;
+  $('anKm').textContent = p.km;
+  $('anAPI').textContent = p.api;
+  $('anType').textContent = p.type;
+  $('anTech').textContent = p.tech;
+  $('anVol').textContent = p.vol;
+}
+
+function openAnnotations(){
+  const p = filtered[index];
+  fillAnnotations(p);
+
+  // Giá net (xử lý ẩn/hiện)
+  if(p.netPrice08){
+    $('colNet08').style.display = 'block';
+    $('net08').textContent = p.netPrice08;
+  } else {
+    $('colNet08').style.display = 'none';
+  }
+
+  if(p.netPrice1L){
+    $('colNet1L').style.display = 'block';
+    $('net1L').textContent = p.netPrice1L;
+  } else {
+    $('colNet1L').style.display = 'none';
+  }
+  
+  $('netPrice').classList.add('show');
+
+  annoOpen = true;
+  $('bottle').classList.add('zoomed');
+  $('annotations').classList.add('show');
+  $('closeAnno').classList.add('show');
+  closePanel();
+
+  vibrate(20);
+}
+
+function closeAnnotations(){
+  annoOpen = false;
+  $('bottle').classList.remove('zoomed');
+  $('annotations').classList.remove('show');
+  $('closeAnno').classList.remove('show');
+  $('netPrice').classList.remove('show');
+}
+
+// Bấm vào chai: Chỉ mở chú thích, không tự đóng nếu đã mở
+$('bottle').addEventListener('click', () => {
+  if(!annoOpen) {
+    vibrate(18);
+    openAnnotations();
+  }
+});
+
+// ============================================================
+// VUỐT ĐỔI CHAI
+// ============================================================
+const stage = $('stage');
+let bStartX = 0, bStartY = 0, bMoved = false;
+
+stage.addEventListener('touchstart', e => {
+  bStartX = e.touches[0].clientX; bStartY = e.touches[0].clientY; bMoved = false;
+}, {passive:true});
+stage.addEventListener('touchmove', e => {
+  const dx = e.touches[0].clientX - bStartX;
+  const dy = e.touches[0].clientY - bStartY;
+  if(Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) bMoved = true;
+}, {passive:true});
+stage.addEventListener('touchend', e => {
+  if(!bMoved) return;
+  const dx = e.changedTouches[0].clientX - bStartX;
+  if(dx < -50){ vibrate(12); nextBottle(); }
+  else if(dx > 50){ vibrate(12); prevBottle(); }
+});
+
+let bMouse = false, bMouseX = 0;
+stage.addEventListener('mousedown', e => { bMouse = true; bMouseX = e.clientX; });
+stage.addEventListener('mouseup', e => {
+  if(!bMouse) return; bMouse = false;
+  const dx = e.clientX - bMouseX;
+  if(dx < -60){ vibrate(12); nextBottle(); }
+  else if(dx > 60){ vibrate(12); prevBottle(); }
+});
+
+function nextBottle(){ index = (index + 1) % filtered.length; animateBottle(); }
+function prevBottle(){ index = (index - 1 + filtered.length) % filtered.length; animateBottle(); }
+function animateBottle(){
+  closeAnnotations();
+  const b = $('bottle');
+  // Xóa các thuộc tính transform và opacity do JS can thiệp để nhường cho CSS
+  b.style.transition = 'none';
+  b.style.opacity = '0';
+  setTimeout(() => {
+    renderBottle();
+    b.style.transition = 'transform .4s cubic-bezier(.22,1,.36,1), opacity .15s ease';
+    b.style.opacity = '1';
+  }, 150);
+}
+
+document.addEventListener('keydown', e => {
+  if($('screenProduct').classList.contains('hidden')) return;
+  if(e.key === 'ArrowRight') nextBottle();
+  if(e.key === 'ArrowLeft') prevBottle();
+  if(e.key === 'Escape'){ closeAnnotations(); closePanel(); goHome(); }
+});
+
+// ============================================================
+// PANEL MÔ TẢ
+// ============================================================
+function openPanel(){
+  const p = filtered[index];
+  $('mName').textContent = p.name;
+  $('mCat').textContent = p.catLabel + (p.promo ? ' · Đang khuyến mãi' : '');
+  $('mDesc').textContent = p.desc;
+  $('mFeats').innerHTML = p.feats.map(f => `<span>${f}</span>`).join('');
+  $('mBtn').href = 'https://zalo.me/0900000000';
+  $('infoPanel').classList.add('open');
+}
+function closePanel(){ $('infoPanel').classList.remove('open'); }
+
+// Khởi tạo
+vehGo(0);
+</script>
+</body>
+</html>
